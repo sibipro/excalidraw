@@ -166,6 +166,7 @@ export const SelectedShapeActions = ({
       <div className="selected-shape-actions">
         <div>{renderAction("changeBucketFillBackgroundColor")}</div>
         {renderAction("changeFillStyle")}
+        {renderAction("changeFillGradient")}
         {renderAction("changeOpacity")}
       </div>
     );
@@ -178,6 +179,7 @@ export const SelectedShapeActions = ({
         <div>{renderAction("changeBackgroundColor")}</div>
       )}
       {predicates.fill && renderAction("changeFillStyle")}
+      {predicates.fill && renderAction("changeFillGradient")}
 
       {predicates.strokeWidth && renderAction("changeStrokeWidth")}
       {predicates.freedrawStrokeWidth &&
@@ -300,6 +302,7 @@ const CombinedShapeProperties = ({
           >
             <div className="selected-shape-actions">
               {predicates.fill && renderAction("changeFillStyle")}
+              {predicates.fill && renderAction("changeFillGradient")}
               {predicates.strokeWidth && renderAction("changeStrokeWidth")}
               {predicates.freedrawStrokeWidth &&
                 renderAction("changeFreedrawStrokeWidth")}

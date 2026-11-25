@@ -7,6 +7,7 @@ import {
   COLOR_PALETTE,
   DEFAULT_ELEMENT_BACKGROUND_COLOR_PALETTE,
   ARROW_TYPE,
+  DEFAULT_FILL_GRADIENT,
   DEFAULT_FONT_FAMILY,
   DEFAULT_FONT_SIZE,
   FONT_FAMILY,
@@ -123,6 +124,8 @@ import {
   TextAlignMiddleIcon,
   FillHachureIcon,
   FillCrossHatchIcon,
+  FillGradientIcon,
+  FillGradientRadialIcon,
   FillSolidIcon,
   SloppinessArchitectIcon,
   SloppinessArtistIcon,
@@ -678,6 +681,12 @@ export const actionChangeFillStyle = register<ExcalidrawElement["fillStyle"]>({
                 icon: FillSolidIcon,
                 testId: `fill-solid`,
               },
+              {
+                value: "gradient",
+                text: t("labels.gradient"),
+                icon: FillGradientIcon,
+                testId: `fill-gradient`,
+              },
             ]}
             value={getFormValue(
               elements,
@@ -702,6 +711,137 @@ export const actionChangeFillStyle = register<ExcalidrawElement["fillStyle"]>({
           />
         </div>
       </fieldset>
+    );
+  },
+});
+
+const FILL_GRADIENT_COLORS = [
+  COLOR_PALETTE.white,
+  COLOR_PALETTE.black,
+  COLOR_PALETTE.red[2],
+  COLOR_PALETTE.violet[2],
+  COLOR_PALETTE.blue[2],
+  COLOR_PALETTE.green[2],
+  COLOR_PALETTE.yellow[2],
+  COLOR_PALETTE.orange[2],
+] as const;
+
+export const actionChangeFillGradient = register<
+  Partial<NonNullable<ExcalidrawElement["fillGradient"]>>
+>({
+  name: "changeFillGradient",
+  label: "labels.gradient",
+  trackEvent: false,
+  perform: (elements, appState, value) => {
+    invariant(value, "actionChangeFillGradient: value must be defined");
+
+    return {
+      elements: changeProperty(elements, appState, (el) =>
+        hasFillStyle(el.type) && el.fillStyle === "gradient"
+          ? newElementWith(el, {
+              fillGradient: {
+                ...(el.fillGradient ?? DEFAULT_FILL_GRADIENT),
+                ...value,
+              },
+            })
+          : el,
+      ),
+      appState: {
+        ...appState,
+        currentItemFillGradient: {
+          ...appState.currentItemFillGradient,
+          ...value,
+        },
+      },
+      captureUpdate: CaptureUpdateAction.IMMEDIATELY,
+    };
+  },
+  PanelComponent: ({ elements, appState, updateData, app }) => {
+    const isGradientFill = (element: ExcalidrawElement) =>
+      hasFillStyle(element.type) && element.fillStyle === "gradient";
+    const selectedElements = getSelectedElements(elements, appState);
+    const fillGradients = selectedElements.length
+      ? selectedElements
+          .filter(isGradientFill)
+          .map((element) => element.fillGradient ?? DEFAULT_FILL_GRADIENT)
+      : appState.currentItemFillStyle === "gradient"
+      ? [appState.currentItemFillGradient]
+      : [];
+
+    if (!fillGradients.length) {
+      return null;
+    }
+
+    const common = <K extends keyof typeof DEFAULT_FILL_GRADIENT>(key: K) =>
+      reduceToCommonValue(fillGradients, (fillGradient) => fillGradient[key]);
+    const angle = common("angle");
+
+    return (
+      <>
+        <fieldset>
+          <legend>{t("labels.gradientType")}</legend>
+          <div className="buttonList">
+            <RadioSelection
+              type="button"
+              options={[
+                {
+                  value: "linear" as const,
+                  text: t("labels.gradientType_linear"),
+                  icon: FillGradientIcon,
+                  testId: "fill-gradient-type-linear",
+                },
+                {
+                  value: "radial" as const,
+                  text: t("labels.gradientType_radial"),
+                  icon: FillGradientRadialIcon,
+                  testId: "fill-gradient-type-radial",
+                },
+              ]}
+              value={common("type")}
+              onClick={(type) => updateData({ type })}
+            />
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>{t("labels.gradientColor")}</legend>
+          <div className="buttonList">
+            <RadioSelection
+              type="button"
+              options={FILL_GRADIENT_COLORS.map((color) => ({
+                value: color,
+                text: color,
+                icon: (
+                  <svg viewBox="0 0 20 20">
+                    <circle
+                      cx="10"
+                      cy="10"
+                      r="7"
+                      fill={color}
+                      stroke="currentColor"
+                      strokeWidth={1}
+                    />
+                  </svg>
+                ),
+                testId: `fill-gradient-color-${color}`,
+              }))}
+              value={common("color")}
+              onClick={(color) => updateData({ color })}
+            />
+          </div>
+        </fieldset>
+        {fillGradients.some(({ type }) => type === "linear") && (
+          <Range
+            label={t("labels.gradientAngle")}
+            value={angle ?? DEFAULT_FILL_GRADIENT.angle}
+            hasCommonValue={angle !== null}
+            onChange={(value) => updateData({ angle: value })}
+            min={0}
+            max={345}
+            step={15}
+            testId="fill-gradient-angle"
+          />
+        )}
+      </>
     );
   },
 });
