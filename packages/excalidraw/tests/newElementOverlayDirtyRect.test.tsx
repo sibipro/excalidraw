@@ -9,7 +9,7 @@ import { Excalidraw } from "../index";
 
 import { API } from "./helpers/api";
 import { Pointer, UI } from "./helpers/ui";
-import { render, unmountComponent } from "./test-utils";
+import { act, render, unmountComponent } from "./test-utils";
 
 unmountComponent();
 
@@ -106,6 +106,18 @@ describe("the canvas over a new element drawn inside a frame", () => {
       overlay.width / window.devicePixelRatio,
       overlay.height / window.devicePixelRatio,
     );
+
+  it("repaints the whole restored overlay while the pen stays still", async () => {
+    const { mouse, overlay, clearRect } = await drawInFrame();
+    clearRect.mockClear();
+
+    act(() => {
+      overlay.dispatchEvent(new Event("contextrestored"));
+    });
+
+    clearsInFull(clearRect, overlay);
+    mouse.upAt(220, 80);
+  });
 
   it("clears in full while a rough rectangle is drawn inside the frame", async () => {
     await render(<Excalidraw />);

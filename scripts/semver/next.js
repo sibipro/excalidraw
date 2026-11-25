@@ -67,10 +67,16 @@ const highestLevel = (commits) =>
 // contains the commit, if any. treeVersion: the packages' version in the
 // commit's tree. commits: what the commit adds since lastTag.
 //
-// Only a bump PR changes the version on master, so a release is always the
-// version master's manifests already hold. Changes without a bump yield the
+// Only a bump PR changes the version on main, so a release is always the
+// version main's manifests already hold. Changes without a bump yield the
 // version that bump PR should set.
-const plan = ({ lastTag, containingTag, treeVersion, commits }) => {
+const plan = ({
+  lastTag,
+  containingTag,
+  treeVersion,
+  commits,
+  occupiedTags = new Set(),
+}) => {
   const lastVersion = lastTag.slice(1);
   if (containingTag) {
     return {
@@ -79,10 +85,15 @@ const plan = ({ lastTag, containingTag, treeVersion, commits }) => {
     };
   }
   if (compareVersions(treeVersion, lastVersion) > 0) {
+    if (occupiedTags.has(`v${treeVersion}`)) {
+      throw new Error(
+        `v${treeVersion} already exists on another release line.`,
+      );
+    }
     return {
       release: true,
       version: treeVersion,
-      reason: `master's manifests are at ${treeVersion}, which no tag has released`,
+      reason: `main's manifests are at ${treeVersion}, which no tag has released`,
     };
   }
   const level = highestLevel(commits);
@@ -92,16 +103,20 @@ const plan = ({ lastTag, containingTag, treeVersion, commits }) => {
       reason: `no feat, fix, perf, revert or breaking change since ${lastTag}`,
     };
   }
+  let pending = bumpVersion(lastVersion, level);
+  while (occupiedTags.has(`v${pending}`)) {
+    pending = bumpVersion(pending, level);
+  }
   return {
     release: false,
-    pending: bumpVersion(lastVersion, level),
+    pending,
     reason: `a ${level} change since ${lastTag}, and the manifests are still at ${treeVersion}`,
   };
 };
 
 const headline = (result) => {
   if (result.release) {
-    return `Release ${result.version} from master's manifests: ${result.reason}.`;
+    return `Release ${result.version} from main's manifests: ${result.reason}.`;
   }
   if (result.pending) {
     return `Release pending: open a bump PR to ${result.pending} (node scripts/semver/bump.js ${result.pending}). ${result.reason}.`;
@@ -120,10 +135,10 @@ const releaseTags = (lines) =>
     .sort((a, b) => compareVersions(a.slice(1), b.slice(1)));
 
 // Reads what plan needs from the repository at cwd. A tag's commit may be the
-// bump commit a release added on top of master. lastTag..sha still excludes
-// the master commit under it, which is an ancestor of the tag.
+// bump commit a release added on top of main. lastTag..sha still excludes
+// the main commit under it, which is an ancestor of the tag.
 const readRepository = ({ sha, cwd }) => {
-  const tags = releaseTags(git(["tag", "--list", "v*"], cwd));
+  const tags = releaseTags(git(["tag", "--merged", sha, "--list", "v*"], cwd));
   const lastTag = tags[tags.length - 1];
   if (!lastTag) {
     throw new Error("No vX.Y.Z tag exists, so there is no version to bump.");
@@ -151,7 +166,16 @@ const readRepository = ({ sha, cwd }) => {
   const treeVersion = JSON.parse(
     git(["show", `${sha}:packages/excalidraw/package.json`], cwd),
   ).version;
-  return { lastTag, containingTag: containing[0], treeVersion, commits };
+  const occupiedTags = new Set(
+    git(["tag", "--list", "v*"], cwd).trim().split("\n"),
+  );
+  return {
+    lastTag,
+    containingTag: containing[0],
+    treeVersion,
+    commits,
+    occupiedTags,
+  };
 };
 
 const argument = (name) =>
@@ -164,13 +188,14 @@ if (require.main === module) {
   const title = argument("title");
   if (!sha) {
     console.error(
-      'Usage: node scripts/semver/next.js --sha=<master commit> [--title="<PR title to count as merged>"]',
+      'Usage: node scripts/semver/next.js --sha=<main commit> [--title="<PR title to count as merged>"]',
     );
     process.exit(1);
   }
   try {
     const repository = readRepository({ sha, cwd: process.cwd() });
     if (title !== undefined) {
+      repository.containingTag = undefined;
       repository.commits.push({ hash: "(this PR)", subject: title, body: "" });
     }
     const result = plan(repository);

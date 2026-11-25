@@ -25,6 +25,7 @@ import {
   getRenderElementWithPositionOverride,
   getSettledBitmapCount,
   resolveElementRenderState,
+  elementWithCanvasCache,
   endBitmapBuildBudget,
   renderElement,
   startBitmapBuildBudget,
@@ -49,6 +50,7 @@ import {
 import { getThemeCanvasBackground } from "../cssTheme";
 
 import { getBackdrop, strokeBackdrop } from "./backdrop";
+import { registerContextCache } from "./contextCaches";
 import {
   bootstrapCanvas,
   getNormalizedCanvasDimensions,
@@ -253,6 +255,19 @@ const linkIconCanvasCache: {
   regularLink: null,
   elementLink: null,
 };
+
+registerContextCache("link icons", () => {
+  linkIconCanvasCache.regularLink = null;
+  linkIconCanvasCache.elementLink = null;
+});
+
+// the element package cannot reach this registry, so the renderer that
+// draws its bitmaps registers them
+registerContextCache("element bitmaps", (elements) => {
+  for (const element of elements) {
+    elementWithCanvasCache.delete(element);
+  }
+});
 
 const renderLinkIcon = (
   element: NonDeletedExcalidrawElement,
@@ -579,10 +594,13 @@ type PaintedUnderNewElement = {
   loadedImageCount: number;
 };
 
-const paintedUnderNewElement = new WeakMap<
+let paintedUnderNewElement = new WeakMap<
   HTMLCanvasElement,
   PaintedUnderNewElement
 >();
+registerContextCache("static paint records", () => {
+  paintedUnderNewElement = new WeakMap();
+});
 
 const countLoadedImages = (
   imageCache: StaticCanvasRenderConfig["imageCache"],

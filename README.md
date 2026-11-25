@@ -1,4 +1,12 @@
-# redaphid/excalidraw
+# sibipro/excalidraw
+
+Inkfinity consumes the five tarballs attached to [Sibi’s GitHub releases](https://github.com/sibipro/excalidraw/releases). The default branch, `main`, continues the classic-toolbar 1.16 line with Sibi’s gradient support. The `master` branch preserves the radial-only editor history.
+
+Merge changes and version bumps into `main`. Run `node scripts/semver/next.js --sha=HEAD` to inspect the release plan and `node scripts/semver/bump.js X.Y.Z` to update the five manifests together. The release workflow checks the packed consumer before attaching the tarballs. Inkfinity pins the common, element and editor tarball URLs together in Biggie’s pnpm catalog.
+
+## Upstream reference
+
+The following documentation describes the redaphid fork and its registry.
 
 This is a fork of [Excalidraw](https://github.com/excalidraw/excalidraw) for [draw](https://draw.hypnodroid.com), a pen-first whiteboard that zooms far past upstream's 30x. It is upstream `master` at [`5a406e518`](https://github.com/excalidraw/excalidraw/commit/5a406e51875157bece389b9bc92d41ff241d5f3d) plus the fork's commits on this repo's `master`. It is not an upstream release. Its packages are published to GitHub Packages as `@redaphid/excalidraw` and four siblings, versioned with semver from 1.0.0 (see [Install](#install)). Nothing is published to npmjs.
 
