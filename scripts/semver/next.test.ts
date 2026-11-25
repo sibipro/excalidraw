@@ -103,6 +103,17 @@ describe("plan", () => {
     ).toMatchObject({ release: true, version: "1.11.0" });
   });
 
+  it("refuses a manifest bump to a tag already used on another branch", () => {
+    expect(() =>
+      plan({
+        lastTag: "v1.0.0",
+        treeVersion: "1.1.0",
+        occupiedTags: new Set(["v1.1.0"]),
+        commits: titles("feat(editor): add gradients"),
+      }),
+    ).toThrow("v1.1.0 already exists");
+  });
+
   it("does not release a commit a tag already contains", () => {
     const result = plan({
       lastTag: "v1.10.1",
@@ -195,6 +206,37 @@ describe("readRepository", { timeout: 30_000 }, () => {
     git("switch", "-q", "main");
     const bumped = commit("fix(editor): restore the canvas", "1.0.1");
     expect(planAt(bumped)).toMatchObject({ release: true, version: "1.0.1" });
+  });
+
+  it.each([
+    ["fix(editor): restore canvases", "1.0.1", "1.0.2", "1.0.3"],
+    ["feat(editor): add gradients", "1.1.0", "1.2.0", "1.3.0"],
+    ["feat(editor)!: change the palette", "2.0.0", "3.0.0", "4.0.0"],
+  ])("skips occupied versions for %s", (title, first, second, pending) => {
+    commit("chore(repo): start");
+    git("tag", "v1.0.0");
+    git("switch", "-qc", "radial-only");
+    commit("chore(repo): previous releases");
+    git("tag", `v${first}`);
+    git("tag", `v${second}`);
+    git("switch", "-q", "main");
+
+    expect(planAt(commit(title))).toMatchObject({ release: false, pending });
+  });
+
+  it("rehearses a fix whose base already has a release tag", () => {
+    const sha = commit("chore(repo): start");
+    git("tag", "v1.0.0");
+    const output = execFileSync(
+      process.execPath,
+      [
+        require.resolve("./next"),
+        `--sha=${sha}`,
+        "--title=fix(editor): restore canvases",
+      ],
+      { cwd: dir, encoding: "utf8" },
+    );
+    expect(output).toContain("Release pending: open a bump PR to 1.0.1");
   });
 
   it("reads the highest tag by semver, not by name", () => {
