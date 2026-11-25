@@ -91,7 +91,7 @@ describe("plan", () => {
     expect(next([]).pending).toBeUndefined();
   });
 
-  it("releases the version a merged bump PR put in master's manifests", () => {
+  it("releases the version a merged bump PR put in main's manifests", () => {
     expect(
       next(
         titles(
@@ -122,9 +122,9 @@ describe("headline", () => {
     );
   });
 
-  it("names the release from master's manifests", () => {
+  it("names the release from main's manifests", () => {
     expect(headline(next([], "1.11.0"))).toMatch(
-      /^Release 1\.11\.0 from master's manifests/,
+      /^Release 1\.11\.0 from main's manifests/,
     );
   });
 });
@@ -148,7 +148,7 @@ describe("readRepository", { timeout: 30_000 }, () => {
 
   beforeEach(() => {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), "semver-next-"));
-    git("init", "-q", "-b", "master");
+    git("init", "-q", "-b", "main");
     git("config", "user.email", "test@example.com");
     git("config", "user.name", "test");
     git("config", "commit.gpgsign", "false");
@@ -184,6 +184,17 @@ describe("readRepository", { timeout: 30_000 }, () => {
     const result = planAt(fix);
     expect(result).toMatchObject({ release: false });
     expect(result.pending).toBeUndefined();
+  });
+
+  it("ignores versions tagged only on the radial-only branch", () => {
+    commit("chore(repo): start");
+    git("tag", "v1.0.0");
+    git("switch", "-qc", "radial-only");
+    commit("feat(editor)!: require the radial palette", "2.0.0");
+    git("tag", "v2.0.0");
+    git("switch", "-q", "main");
+    const bumped = commit("fix(editor): restore the canvas", "1.0.1");
+    expect(planAt(bumped)).toMatchObject({ release: true, version: "1.0.1" });
   });
 
   it("reads the highest tag by semver, not by name", () => {

@@ -1,4 +1,12 @@
-# Releasing and installing the packages
+# Sibi releases
+
+Inkfinity consumes the five tarballs attached to [Sibi’s GitHub releases](https://github.com/sibipro/excalidraw/releases). The default branch, `main`, continues the classic-toolbar 1.16 line with Sibi’s gradient support. The `master` branch preserves the radial-only editor history.
+
+Merge changes and version bumps into `main`. Run `node scripts/semver/next.js --sha=HEAD` to inspect the release plan and `node scripts/semver/bump.js X.Y.Z` to update the five manifests together. The release workflow checks the packed consumer before attaching the tarballs. Inkfinity pins the common, element and editor tarball URLs together in Biggie’s pnpm catalog.
+
+## Upstream reference
+
+The following documentation describes the redaphid fork and its registry.
 
 The fork publishes five packages to GitHub Packages, the npm registry at `https://npm.pkg.github.com`. They share one semver version, starting at 1.0.0.
 

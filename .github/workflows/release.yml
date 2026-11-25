@@ -4,14 +4,14 @@ on:
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
-  # auto-release.yml calls this when master's manifests hold a version no tag
-  # has released, after a bump PR merges. It tags master's own commit.
+  # auto-release.yml calls this when main's manifests hold a version no tag
+  # has released, after a bump PR merges. It tags main's own commit.
   # A tag pushed with GITHUB_TOKEN starts no workflow, so the tag push above
   # fires only for a tag a person pushes.
   workflow_call:
     inputs:
       sha:
-        description: The master commit to release.
+        description: The main commit to release.
         required: true
         type: string
       version:
@@ -32,7 +32,6 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: write
-      packages: write
     env:
       CALLED: ${{ inputs.version && 'true' || 'false' }}
       SHA: ${{ inputs.sha || github.sha }}
@@ -42,7 +41,7 @@ jobs:
         with:
           ref: ${{ env.SHA }}
           persist-credentials: false
-      - name: The commit is on master
+      - name: The commit is on main
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -50,9 +49,9 @@ jobs:
             echo "::error::$TAG is not a vX.Y.Z tag."
             exit 1
           fi
-          status=$(gh api "repos/$GITHUB_REPOSITORY/compare/master...$SHA" --jq .status)
+          status=$(gh api "repos/$GITHUB_REPOSITORY/compare/main...$SHA" --jq .status)
           if [ "$status" != identical ] && [ "$status" != behind ]; then
-            echo "::error::$TAG would release $SHA, which is not on master ($status). Release a master commit."
+            echo "::error::$TAG would release $SHA, which is not on main ($status). Release a main commit."
             exit 1
           fi
       - name: The tag is free or already this release
@@ -85,9 +84,6 @@ jobs:
         run: |
           git tag "$TAG" "$RELEASE_SHA"
           git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "refs/tags/$TAG"
-      - env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: node scripts/semver/publish.js --version="${TAG#v}"
       - env:
           GH_TOKEN: ${{ github.token }}
         run: |
