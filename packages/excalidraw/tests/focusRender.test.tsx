@@ -54,6 +54,8 @@ describe("the caches a lost context blanks", () => {
       "backdrop rasters",
       "element bitmaps",
       "link icons",
+      "overlay paint records",
+      "static paint records",
     ]);
   });
 });

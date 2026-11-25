@@ -16,6 +16,7 @@ import type { RoughCanvas } from "roughjs/bin/canvas";
 interface NewElementCanvasProps {
   appState: AppState;
   layer: NewElementLayer;
+  onContextRestored: () => void;
   elementsMap: RenderableElementsMap;
   allElementsMap: NonDeletedSceneElementsMap;
   scale: number;
@@ -27,6 +28,14 @@ interface NewElementCanvasProps {
 
 const NewElementCanvas = (props: NewElementCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const { onContextRestored } = props;
+  useEffect(() => {
+    const canvas = canvasRef.current!;
+    canvas.addEventListener("contextrestored", onContextRestored);
+    return () =>
+      canvas.removeEventListener("contextrestored", onContextRestored);
+  }, [onContextRestored]);
+
   useEffect(() => {
     if (!canvasRef.current) {
       return;

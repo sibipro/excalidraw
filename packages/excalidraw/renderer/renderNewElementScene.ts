@@ -14,6 +14,7 @@ import {
 import type { Bounds } from "@excalidraw/common";
 import type { NonDeletedExcalidrawElement } from "@excalidraw/element/types";
 
+import { registerContextCache } from "./contextCaches";
 import {
   bootstrapCanvas,
   getNormalizedCanvasDimensions,
@@ -39,7 +40,10 @@ type PaintedLayer = {
 
 const ANTI_ALIAS_MARGIN_DEVICE_PX = 1;
 
-const paintedLayers = new WeakMap<HTMLCanvasElement, PaintedLayer>();
+let paintedLayers = new WeakMap<HTMLCanvasElement, PaintedLayer>();
+registerContextCache("overlay paint records", () => {
+  paintedLayers = new WeakMap();
+});
 
 const onlyNewElementChanged = (
   canvas: HTMLCanvasElement,

@@ -594,10 +594,13 @@ type PaintedUnderNewElement = {
   loadedImageCount: number;
 };
 
-const paintedUnderNewElement = new WeakMap<
+let paintedUnderNewElement = new WeakMap<
   HTMLCanvasElement,
   PaintedUnderNewElement
 >();
+registerContextCache("static paint records", () => {
+  paintedUnderNewElement = new WeakMap();
+});
 
 const countLoadedImages = (
   imageCache: StaticCanvasRenderConfig["imageCache"],

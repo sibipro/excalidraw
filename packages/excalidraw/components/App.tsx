@@ -2850,6 +2850,7 @@ class App extends React.Component<AppProps, AppState> {
                           />
                           {newElementLayer && (
                             <NewElementCanvas
+                              onContextRestored={this.onCanvasContextRestored}
                               appState={this.state}
                               layer={newElementLayer}
                               scale={this.ownerWindow.devicePixelRatio}
